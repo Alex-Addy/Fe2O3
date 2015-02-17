@@ -3,16 +3,23 @@
 #![feature(core)]
 use std::net;
 use std::io::Read;
+use std::io::Result;
 
+fn start_connection(host: &str, port: u16) -> Result<net::TcpStream> {
+	let mut res = try!(net::lookup_host(host));
+	let first = try!(res.next().unwrap());
+
+	let socket = net::SocketAddr::new(first.ip(), port);
+	let mut stream = try!(net::TcpStream::connect(&socket));
+	try!(stream.set_nodelay(true));
+
+	return Ok(stream);
+}
 
 fn main() {
 	let server = "irc.freenode.org";
 	let port   = 6667;
-	let res = net::lookup_host(server);
-
-	let socket = net::SocketAddr::new(res.unwrap().next().unwrap().unwrap().ip(), port);
-	let mut stream = net::TcpStream::connect(&socket).unwrap();
-	stream.set_nodelay(true);
+	let mut stream = start_connection(server, port).unwrap();
 
 	let mut buf = [0; 128];
 	let mut bytes_read = stream.read(&mut buf).unwrap();
