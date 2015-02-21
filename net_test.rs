@@ -1,4 +1,5 @@
 #![feature(io)]
+#![feature(old_io)]
 
 use std::old_io::net::{tcp, addrinfo};
 use std::old_io::{IoResult, BufferedStream};
