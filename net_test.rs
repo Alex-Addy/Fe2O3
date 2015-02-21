@@ -29,7 +29,6 @@ fn main() {
 	let mut result = stream.read_line();
 	while result.is_ok() {
 		print!("{}", result.unwrap());
-		print!("$$");
 		result = stream.read_line();
 	}
 }
