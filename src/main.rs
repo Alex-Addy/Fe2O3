@@ -2,7 +2,7 @@
 #![feature(old_io)]
 
 use std::old_io::net::{tcp, addrinfo};
-use std::old_io::{IoResult, BufferedStream};
+use std::old_io::{IoResult, BufferedStream, Stream};
 
 fn start_connection(host: &str, port: u16) -> IoResult<tcp::TcpStream> {
 	let res = try!(addrinfo::get_host_addresses(host));
@@ -10,6 +10,23 @@ fn start_connection(host: &str, port: u16) -> IoResult<tcp::TcpStream> {
 	try!(stream.set_nodelay(true));
 
 	return Ok(stream);
+}
+
+fn send_line_fmt<T: Writer>(sink: &mut T, fmt: std::fmt::Arguments) -> IoResult<()> {
+	sink.write_fmt(fmt).and(
+	sink.flush())
+}
+
+/// Spins on stream, acting as the main control loop
+fn listen<S: Stream>(mut stream: BufferedStream<S>) {
+	println!("Starting to listen");
+	let mut result = stream.read_line();
+	while result.is_ok() {
+		let line = result.unwrap();
+		print!("{}", line);
+
+		result = stream.read_line();
+	}
 }
 
 fn main() {
@@ -20,16 +37,9 @@ fn main() {
 
 	let mut stream = BufferedStream::new(start_connection(server, port).unwrap());
 
-	stream.write_fmt(format_args!("{} {}\r\n", "NICK", nick)).unwrap();
-	stream.flush().unwrap();
-	stream.write_fmt(format_args!("{} {}{}\r\n", "USER", nick, " 0 * :tutorial bot")).unwrap();
-	stream.flush().unwrap();
-	stream.write_fmt(format_args!("{} {}\r\n", "JOIN", chan)).unwrap();
-	stream.flush().unwrap();
+	send_line_fmt(&mut stream, format_args!("{} {}\r\n", "NICK", nick)).unwrap();
+	send_line_fmt(&mut stream, format_args!("{} {}{}\r\n","USER", nick," 0 * :tutorial bot")).unwrap();
+	send_line_fmt(&mut stream, format_args!("{} {}\r\n", "JOIN", chan)).unwrap();
 
-	let mut result = stream.read_line();
-	while result.is_ok() {
-		print!("{}", result.unwrap());
-		result = stream.read_line();
-	}
+	listen(stream);
 }
