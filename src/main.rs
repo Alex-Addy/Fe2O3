@@ -1,6 +1,4 @@
 #![feature(io)]
-#![feature(old_io)]
-#![allow(deprecated)]
 
 use std::old_io::net::{tcp, addrinfo};
 use std::old_io::{IoResult, BufferedStream, Stream};
@@ -26,11 +24,6 @@ fn listen<S: Stream>(mut stream: BufferedStream<S>) {
 	while result.is_ok() {
 		let line = result.unwrap();
 		print!("{}", line);
-
-        let mut cleaned = line.split(":").collect::<Vec<&str>>();
-        if cleaned[2].starts_with("PING :") {
-            send_line_fmt(&mut stream, format_args!("PONG {}", cleaned[3]));
-        }
 
 		result = stream.read_line();
 	}
