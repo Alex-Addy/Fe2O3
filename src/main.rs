@@ -14,6 +14,7 @@ fn start_connection(host: &str, port: u16) -> IoResult<tcp::TcpStream> {
 }
 
 fn send_line_fmt<T: Writer>(sink: &mut T, fmt: std::fmt::Arguments) -> IoResult<()> {
+    std::old_io::stdio::print_args(fmt);
 	sink.write_fmt(fmt).and(
 	sink.flush())
 }
@@ -26,6 +27,11 @@ fn listen<S: Stream>(mut stream: BufferedStream<S>) {
 		let line = result.unwrap();
 		print!("{}", line);
 
+        let mut cleaned = line.split(":").collect::<Vec<&str>>();
+        if cleaned[2].starts_with("PING :") {
+            send_line_fmt(&mut stream, format_args!("PONG {}", cleaned[3]));
+        }
+
 		result = stream.read_line();
 	}
 }
@@ -34,7 +40,7 @@ fn main() {
 	let server = "irc.freenode.org";
 	let port   = 6667;
 	let chan = "#tutbot-testing";
-	let nick = "tutbot";
+	let nick = "Fe2O3";
 
 	let mut stream = BufferedStream::new(start_connection(server, port).unwrap());
 
