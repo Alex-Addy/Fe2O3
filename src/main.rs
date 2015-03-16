@@ -1,31 +1,37 @@
 #![feature(io)]
+#![feature(net)]
 
-use std::old_io::net::{tcp, addrinfo};
-use std::old_io::{IoResult, BufferedStream, Stream};
+use std::net::{lookup_host, TcpStream};
+use std::io::{Result, BufStream, BufRead, Read, Write};
 
-fn start_connection(host: &str, port: u16) -> IoResult<tcp::TcpStream> {
-	let res = try!(addrinfo::get_host_addresses(host));
-	let mut stream = try!(tcp::TcpStream::connect((res[0], port)));
+fn start_connection(host: &str, port: u16) -> Result<TcpStream> {
+	let mut res = try!(lookup_host(host));
+	let mut stream = try!(TcpStream::connect(&(res.next()
+                    .expect("Failed to get ip address for host")
+                    .unwrap().ip(), port)));
 	try!(stream.set_nodelay(true));
+    try!(stream.set_keepalive(Some(30)));
 
 	return Ok(stream);
 }
 
-fn send_line_fmt<T: Writer>(sink: &mut T, fmt: std::fmt::Arguments) -> IoResult<()> {
-    std::old_io::stdio::print_args(fmt);
-	sink.write_fmt(fmt).and(
+fn send_line<T: Write>(sink: &mut T, line: String) -> Result<()> {
+    let line_r_n: String = line + "\r\n";
+    let bytes: &[u8] = line_r_n.as_bytes();
+    std::io::stdout().write(bytes);
+	sink.write(bytes).and(
 	sink.flush())
 }
 
 /// Spins on stream, acting as the main control loop
-fn listen<S: Stream>(mut stream: BufferedStream<S>) {
+fn listen<S: Read + Write>(mut stream: BufStream<S>) {
 	println!("Starting to listen");
-	let mut result = stream.read_line();
+    let mut line = String::new();
+	let mut result = stream.read_line(&mut line);
 	while result.is_ok() {
-		let line = result.unwrap();
 		print!("{}", line);
 
-		result = stream.read_line();
+		result = stream.read_line(&mut line);
 	}
 }
 
@@ -35,11 +41,11 @@ fn main() {
 	let chan = "#tutbot-testing";
 	let nick = "Fe2O3";
 
-	let mut stream = BufferedStream::new(start_connection(server, port).unwrap());
+	let mut stream = BufStream::new(start_connection(server, port).unwrap());
 
-	send_line_fmt(&mut stream, format_args!("{} {}\r\n", "NICK", nick)).unwrap();
-	send_line_fmt(&mut stream, format_args!("{} {}{}\r\n","USER", nick," 0 * :tutorial bot")).unwrap();
-	send_line_fmt(&mut stream, format_args!("{} {}\r\n", "JOIN", chan)).unwrap();
+	send_line(&mut stream, format!("{} {}\r\n", "NICK", nick)).unwrap();
+	send_line(&mut stream, format!("{} {}{}\r\n","USER", nick," 0 * :tutorial bot")).unwrap();
+	send_line(&mut stream, format!("{} {}\r\n", "JOIN", chan)).unwrap();
 
 	listen(stream);
 }
