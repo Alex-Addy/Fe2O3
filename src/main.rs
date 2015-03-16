@@ -16,9 +16,9 @@ fn start_connection(host: &str, port: u16) -> Result<TcpStream> {
 }
 
 fn send_line<T: Write>(sink: &mut T, line: String) -> Result<()> {
-    let line_r_n: String = line + "\r\n";
+    let line_r_n: String = line.clone()  + "\r\n";
     let bytes: &[u8] = line_r_n.as_bytes();
-    std::io::stdout().write(bytes);
+    print!("> {}", line);
 	sink.write(bytes).and(
 	sink.flush())
 }
@@ -28,9 +28,10 @@ fn listen<S: Read + Write>(mut stream: BufStream<S>) {
 	println!("Starting to listen");
     let mut line = String::new();
 	let mut result = stream.read_line(&mut line);
-	while result.is_ok() {
-		print!("{}", line);
+	while result.is_ok() && result.unwrap() > 0 {
+		print!("< {}", line);
 
+        line.truncate(0);
 		result = stream.read_line(&mut line);
 	}
 }
