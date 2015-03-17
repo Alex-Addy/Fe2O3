@@ -10,15 +10,15 @@ fn start_connection(host: &str, port: u16) -> Result<TcpStream> {
                     .expect("Failed to get ip address for host")
                     .unwrap().ip(), port)));
 	try!(stream.set_nodelay(true));
-    try!(stream.set_keepalive(Some(30)));
+    //try!(stream.set_keepalive(Some(30)));
 
 	return Ok(stream);
 }
 
 fn send_line<T: Write>(sink: &mut T, line: String) -> Result<()> {
-    let line_r_n: String = line.clone()  + "\r\n";
+    let line_r_n: String = line + "\r\n";
     let bytes: &[u8] = line_r_n.as_bytes();
-    print!("> {}", line);
+    print!("> {}", line_r_n);
 	sink.write(bytes).and(
 	sink.flush())
 }
@@ -28,12 +28,16 @@ fn listen<S: Read + Write>(mut stream: BufStream<S>) {
 	println!("Starting to listen");
     let mut line = String::new();
 	let mut result = stream.read_line(&mut line);
-	while result.is_ok() && result.unwrap() > 0 {
+	while result.is_ok() && result.clone().unwrap() > 0 {
 		print!("< {}", line);
 
         line.truncate(0);
 		result = stream.read_line(&mut line);
 	}
+    match result {
+        Ok(i) => println!("Connection ended with a read length of {}", i),
+        Err(e) => println!("Connection ended with an error of {:?}", e),
+    }
 }
 
 fn main() {
@@ -44,9 +48,9 @@ fn main() {
 
 	let mut stream = BufStream::new(start_connection(server, port).unwrap());
 
-	send_line(&mut stream, format!("{} {}\r\n", "NICK", nick)).unwrap();
-	send_line(&mut stream, format!("{} {}{}\r\n","USER", nick," 0 * :tutorial bot")).unwrap();
-	send_line(&mut stream, format!("{} {}\r\n", "JOIN", chan)).unwrap();
+	send_line(&mut stream, format!("{} {}", "NICK", nick)).unwrap();
+	send_line(&mut stream, format!("{} {}{}","USER", nick," 0 * :tutorial bot")).unwrap();
+	send_line(&mut stream, format!("{} {}", "JOIN", chan)).unwrap();
 
 	listen(stream);
 }
