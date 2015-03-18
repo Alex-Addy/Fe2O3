@@ -19,11 +19,8 @@ fn send_line<T: Write>(sink: &mut T, line: String) -> Result<()> {
     let line_r_n: String = line + "\r\n";
     let bytes: &[u8] = line_r_n.as_bytes();
     print!("> {}", line_r_n);
-	match sink.write(bytes) {
-        Ok(_) => Ok(()),
-        Err(e) => Err(e),
-    }
-    //.and(sink.flush())
+	sink.write(bytes)
+    .and(sink.flush())
 }
 
 /// Spins on stream, acting as the main control loop
@@ -33,14 +30,20 @@ fn listen<S: Read + Write>(mut stream: BufStream<S>) -> Result<()> {
     let mut line = String::new();
     loop {
         let line_length = try!(stream.read_line(&mut line));
-
         if line_length <= 2 {
             break;
         }
-
         line.truncate(line_length - 2);
-
         println!("< {}", line);
+
+        {
+            let bytes = line.as_bytes();
+            if bytes.starts_with("PING :".as_bytes()) && bytes.len() > 6{
+                send_line(&mut stream, format!("PONG :{}",
+                                           String::from_utf8(bytes[6..].to_vec()).unwrap()
+                                          ));
+            }
+        }
 
         line.clear();
     }
@@ -59,7 +62,6 @@ fn main() {
     send_line(&mut stream, format!("{} {}", "NICK", nick)).unwrap();
     send_line(&mut stream, format!("{} {}{}","USER", nick," 0 * :tutorial bot")).unwrap();
     send_line(&mut stream, format!("{} {}", "JOIN", chan)).unwrap();
-    stream.flush();
 
     match listen(stream) {
         Ok(()) => (),
