@@ -5,14 +5,14 @@ use std::net::{lookup_host, TcpStream};
 use std::io::{Result, BufStream, BufRead, Read, Write};
 
 fn start_connection(host: &str, port: u16) -> Result<TcpStream> {
-	let mut res = try!(lookup_host(host));
-	let mut stream = try!(TcpStream::connect(&(res.next()
-                    .expect("Failed to get ip address for host")
-                    .unwrap().ip(), port)));
-	try!(stream.set_nodelay(true));
+    let mut res = try!(lookup_host(host));
+    let mut stream = try!(TcpStream::connect(&(res.next()
+        .expect("Failed to get ip address for host")
+        .unwrap().ip(), port)));
+    try!(stream.set_nodelay(true));
     //try!(stream.set_keepalive(Some(30)));
 
-	return Ok(stream);
+    return Ok(stream);
 }
 
 fn send_line<T: Write>(sink: &mut T, line: String) -> Result<()> {
@@ -28,7 +28,7 @@ fn send_line<T: Write>(sink: &mut T, line: String) -> Result<()> {
 
 /// Spins on stream, acting as the main control loop
 fn listen<S: Read + Write>(mut stream: BufStream<S>) -> Result<()> {
-	println!("Starting to listen");
+    println!("Starting to listen");
 
     let mut line = String::new();
     loop {
@@ -49,19 +49,19 @@ fn listen<S: Read + Write>(mut stream: BufStream<S>) -> Result<()> {
 }
 
 fn main() {
-	let server = "irc.freenode.org";
-	let port   = 6667;
-	let chan = "#tutbot-testing";
-	let nick = "Fe2O3";
+    let server = "irc.freenode.org";
+    let port   = 6667;
+    let chan = "#tutbot-testing";
+    let nick = "Fe2O3";
 
-	let mut stream = BufStream::new(start_connection(server, port).unwrap());
+    let mut stream = BufStream::new(start_connection(server, port).unwrap());
 
-	send_line(&mut stream, format!("{} {}", "NICK", nick)).unwrap();
-	send_line(&mut stream, format!("{} {}{}","USER", nick," 0 * :tutorial bot")).unwrap();
-	send_line(&mut stream, format!("{} {}", "JOIN", chan)).unwrap();
+    send_line(&mut stream, format!("{} {}", "NICK", nick)).unwrap();
+    send_line(&mut stream, format!("{} {}{}","USER", nick," 0 * :tutorial bot")).unwrap();
+    send_line(&mut stream, format!("{} {}", "JOIN", chan)).unwrap();
     stream.flush();
 
-	match listen(stream) {
+    match listen(stream) {
         Ok(()) => (),
         Err(e) => println!("Error: {}", e.description()),
     }
