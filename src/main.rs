@@ -19,25 +19,33 @@ fn send_line<T: Write>(sink: &mut T, line: String) -> Result<()> {
     let line_r_n: String = line + "\r\n";
     let bytes: &[u8] = line_r_n.as_bytes();
     print!("> {}", line_r_n);
-	sink.write(bytes).and(
-	sink.flush())
+	match sink.write(bytes) {
+        Ok(_) => Ok(()),
+        Err(e) => Err(e),
+    }
+    //.and(sink.flush())
 }
 
 /// Spins on stream, acting as the main control loop
-fn listen<S: Read + Write>(mut stream: BufStream<S>) {
+fn listen<S: Read + Write>(mut stream: BufStream<S>) -> Result<()> {
 	println!("Starting to listen");
-    let mut line = String::new();
-	let mut result = stream.read_line(&mut line);
-	while result.is_ok() && result.clone().unwrap() > 0 {
-		print!("< {}", line);
 
-        line.truncate(0);
-		result = stream.read_line(&mut line);
-	}
-    match result {
-        Ok(i) => println!("Connection ended with a read length of {}", i),
-        Err(e) => println!("Connection ended with an error of {:?}", e),
+    let mut line = String::new();
+    loop {
+        let line_length = try!(stream.read_line(&mut line));
+
+        if line_length <= 2 {
+            break;
+        }
+
+        line.truncate(line_length - 2);
+
+        println!("< {}", line);
+
+        line.clear();
     }
+
+    Ok(())
 }
 
 fn main() {
@@ -51,6 +59,10 @@ fn main() {
 	send_line(&mut stream, format!("{} {}", "NICK", nick)).unwrap();
 	send_line(&mut stream, format!("{} {}{}","USER", nick," 0 * :tutorial bot")).unwrap();
 	send_line(&mut stream, format!("{} {}", "JOIN", chan)).unwrap();
+    stream.flush();
 
-	listen(stream);
+	match listen(stream) {
+        Ok(()) => (),
+        Err(e) => println!("Error: {}", e.description()),
+    }
 }
