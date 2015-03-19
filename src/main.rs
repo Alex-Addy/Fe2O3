@@ -36,13 +36,8 @@ fn listen<S: Read + Write>(mut stream: BufStream<S>) -> Result<()> {
         line.truncate(line_length - 2);
         println!("< {}", line);
 
-        {
-            let bytes = line.as_bytes();
-            if bytes.starts_with("PING :".as_bytes()) && bytes.len() > 6{
-                send_line(&mut stream, format!("PONG :{}",
-                                           String::from_utf8(bytes[6..].to_vec()).unwrap()
-                                          ));
-            }
+        if line.starts_with("PING :") {
+            send_line(&mut stream, line.replace("PING", "PONG"));
         }
 
         line.clear();
