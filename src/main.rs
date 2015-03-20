@@ -4,6 +4,9 @@
 use std::net::{lookup_host, TcpStream};
 use std::io::{Result, BufStream, BufRead, Read, Write};
 
+mod irc_lib;
+use irc_lib::Message;
+
 fn start_connection(host: &str, port: u16) -> Result<TcpStream> {
     let mut res = try!(lookup_host(host));
     let mut stream = try!(TcpStream::connect(&(res.next()
