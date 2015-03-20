@@ -1,17 +1,30 @@
 #![feature(io)]
 #![feature(net)]
 
-use std::net::{lookup_host, TcpStream};
-use std::io::{Result, BufStream, BufRead, Read, Write};
+use std::net::{lookup_host, TcpStream, SocketAddr};
+use std::io::{Result, BufStream, BufRead, Read, Write, Error};
 
 mod irc_lib;
 use irc_lib::Message;
 
 fn start_connection(host: &str, port: u16) -> Result<TcpStream> {
-    let mut res = try!(lookup_host(host));
-    let mut stream = try!(TcpStream::connect(&(res.next()
-        .expect("Failed to get ip address for host")
-        .unwrap().ip(), port)));
+    let mut sockets = try!(lookup_host(host));
+
+    let intermediate: SocketAddr = sockets.find(|item| {
+        item.is_ok() && match item.clone().unwrap() {
+            SocketAddr::V4(_) => true,
+            SocketAddr::V6(_) => false,
+        }
+    }) // -> Option<Result<SocketAddr>
+        .unwrap() // -> Result<SocketAddr>
+        .unwrap(); // -> SocketAddr
+
+    let ip = match intermediate {
+        SocketAddr::V4(ipv4) => ipv4.ip().clone(),
+        SocketAddr::V6(ipv6) => panic!("Can't handle ipv6"),
+    };
+
+    let mut stream = try!(TcpStream::connect((ip, port)));
     try!(stream.set_nodelay(true));
     //try!(stream.set_keepalive(Some(30)));
 
