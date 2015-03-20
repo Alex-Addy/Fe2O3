@@ -1,15 +1,15 @@
 
-struct Message<'a> {
+pub struct Message<'a> {
     pub prefix: Option<&'a str>,
     pub command: &'a str,
     pub params: Vec<&'a str>,
     pub trailing: Option<&'a str>,
 
-    line: str,
+    line: String,
 }
 
 impl<'a> Message<'a> {
-    pub fn new(line: str) -> Message<'a> {
+    pub fn new(line: String) -> Message<'a> {
         let prefix_i = match line.starts_with(":") {
             true  => line.find(" ").unwrap(),
             false => 0,
@@ -56,11 +56,11 @@ impl<'a> Message<'a> {
 mod tests {
     #[test]
     fn ping_test() {
-        let m = super::Message::new(*"PING :irc.blab.net");
+        let m = super::Message::new("PING :irc.blab.net".to_string());
 
         assert_eq!(m.prefix, None);
         assert_eq!(m.command, "PING");
-        assert_eq!(m.params, vec![]);
+        assert_eq!(m.params, Vec::<&str>::new());
         assert_eq!(m.trailing, Some("irc.blab.net"));
     }
 }
