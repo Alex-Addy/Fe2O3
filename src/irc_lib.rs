@@ -64,4 +64,27 @@ mod tests {
         assert_eq!(m.params.len(), 1);
         assert_eq!(m.params[0], "irc.blab.net");
     }
+
+    #[test]
+    fn motd_end_test() {
+        let l = super::Line(":irc.blab.net 376 Fe2O3 :End of /MOTD command.".to_string());
+        let m = l.parse_msg();
+
+        assert_eq!(m.prefix, Some("irc.blab.net"));
+        assert_eq!(m.command, "376");
+        assert_eq!(m.params.len(), 2);
+        assert_eq!(m.params[0], "Fe2O3");
+        assert_eq!(m.params[1], "End of /MOTD command.");
+    }
+
+    #[test]
+    fn channel_join_test() {
+        let l = super::Line(":Fe2O3!~Fe2O3@45.55.151.164 JOIN #tutbot-testing".to_string());
+        let m = l.parse_msg();
+
+        assert_eq!(m.prefix, Some("Fe2O3!~Fe2O3@45.55.151.164"));
+        assert_eq!(m.command, "JOIN");
+        assert_eq!(m.params.len(), 1);
+        assert_eq!(m.params[0], "#tutbot-testing");
+    }
 }
