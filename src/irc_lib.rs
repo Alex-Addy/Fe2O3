@@ -16,11 +16,13 @@ impl Line {
 
         let command_end = match prefix_end {
             0 => line.find(" ").unwrap(),
-            i => line[i+1..].find(" ").unwrap_or(line.len()),
+            i => line[i+1..].find(" ").unwrap_or(line.len())
+                + prefix_end // fix offset caused by slicing
+                + 1, // move location past space
         };
         let com = match prefix_end {
             0 => &line[..command_end],
-            i => &line[i..command_end],
+            i => &line[i+1..command_end],
         };
 
         let trailing_start = match line.find(" :") {
