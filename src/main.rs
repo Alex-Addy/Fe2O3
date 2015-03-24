@@ -1,9 +1,8 @@
-#![feature(io)]
-#![feature(net)]
 #![feature(unboxed_closures)]
+#![feature(tcp)]
 
 use std::net::{lookup_host, TcpStream, SocketAddr};
-use std::io::{Result, BufStream, BufRead, Read, Write, Error};
+use std::io::{Result, BufStream, BufRead, Read, Write};
 
 mod irc_lib;
 use irc_lib::{Message, Line};
@@ -15,9 +14,7 @@ fn ping_module(msg: &Message) -> Vec<String> {
         } else {
             ""
         });
-        let mut v = Vec::new();
-        v.push(res);
-        v
+        vec![res]
     } else {
         Vec::new()
     }
@@ -37,7 +34,7 @@ fn start_connection(host: &str, port: u16) -> Result<TcpStream> {
 
     let ip = match intermediate {
         SocketAddr::V4(ipv4) => ipv4.ip().clone(),
-        SocketAddr::V6(ipv6) => panic!("Can't handle ipv6"),
+        SocketAddr::V6(_) => panic!("Can't handle ipv6"),
     };
 
     let mut stream = try!(TcpStream::connect((ip, port)));
@@ -101,6 +98,6 @@ fn main() {
 
     match listen(stream) {
         Ok(()) => (),
-        Err(e) => println!("Error: {}", e.description()),
+        Err(e) => println!("{:?}", e),
     }
 }
