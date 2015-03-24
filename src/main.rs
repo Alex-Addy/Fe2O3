@@ -5,7 +5,22 @@ use std::net::{lookup_host, TcpStream, SocketAddr};
 use std::io::{Result, BufStream, BufRead, Read, Write, Error};
 
 mod irc_lib;
-use irc_lib::Message;
+use irc_lib::{Message, Line};
+
+fn ping_module(msg: Message) -> Vec<String> {
+    if msg.command == "PING" {
+        let res = format!("PONG :{}", if msg.params.len() != 0 {
+            msg.params[0]
+        } else {
+            ""
+        });
+        let mut v = Vec::new();
+        v.push(res);
+        v
+    } else {
+        Vec::new()
+    }
+}
 
 fn start_connection(host: &str, port: u16) -> Result<TcpStream> {
     let mut sockets = try!(lookup_host(host));
@@ -52,8 +67,12 @@ fn listen<S: Read + Write>(mut stream: BufStream<S>) -> Result<()> {
         line.truncate(line_length - 2);
         println!("< {}", line);
 
-        if line.starts_with("PING :") {
-            send_line(&mut stream, line.replace("PING", "PONG"));
+        {
+            let l = Line(line.clone());
+            let msg = l.parse_msg();
+            for response in ping_module(msg) {
+                let _ = try!(send_line(&mut stream, response));
+            }
         }
 
         line.clear();

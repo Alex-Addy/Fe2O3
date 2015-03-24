@@ -1,5 +1,5 @@
 
-pub struct Line(String);
+pub struct Line(pub String);
 
 impl Line {
     pub fn parse_msg(&self) -> Message {
