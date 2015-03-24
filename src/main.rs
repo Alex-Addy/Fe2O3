@@ -1,5 +1,6 @@
 #![feature(io)]
 #![feature(net)]
+#![feature(unboxed_closures)]
 
 use std::net::{lookup_host, TcpStream, SocketAddr};
 use std::io::{Result, BufStream, BufRead, Read, Write, Error};
@@ -7,7 +8,7 @@ use std::io::{Result, BufStream, BufRead, Read, Write, Error};
 mod irc_lib;
 use irc_lib::{Message, Line};
 
-fn ping_module(msg: Message) -> Vec<String> {
+fn ping_module(msg: &Message) -> Vec<String> {
     if msg.command == "PING" {
         let res = format!("PONG :{}", if msg.params.len() != 0 {
             msg.params[0]
@@ -58,7 +59,10 @@ fn send_line<T: Write>(sink: &mut T, line: String) -> Result<()> {
 fn listen<S: Read + Write>(mut stream: BufStream<S>) -> Result<()> {
     println!("Starting to listen");
 
+    type Subscriber = fn(&Message) -> Vec<String>;
+    let modules = vec![ping_module as Subscriber];
     let mut line = String::new();
+
     loop {
         let line_length = try!(stream.read_line(&mut line));
         if line_length <= 2 {
@@ -68,10 +72,12 @@ fn listen<S: Read + Write>(mut stream: BufStream<S>) -> Result<()> {
         println!("< {}", line);
 
         {
-            let l = Line(line.clone());
-            let msg = l.parse_msg();
-            for response in ping_module(msg) {
-                let _ = try!(send_line(&mut stream, response));
+            let wrapper = Line(line.clone());
+            let msg = wrapper.parse_msg();
+            for ind in (0..modules.len()) {
+                for response in modules[ind](&msg) {
+                    let _ = try!(send_line(&mut stream, response));
+                }
             }
         }
 
