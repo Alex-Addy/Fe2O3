@@ -20,6 +20,21 @@ fn ping_module(msg: &Message) -> Vec<String> {
     }
 }
 
+fn id_module(msg: &Message) -> Vec<String> {
+    if msg.command == "PRIVMSG" && msg.params.len() == 2
+        && msg.params[1].starts_with("!id ") {
+            let reciever = match irc_lib::is_valid_channel_name(msg.params[0]) {
+                true  => msg.params[0], //ASSUMPTION: a valid channel name is always a channel
+                false => msg.prefix.unwrap().split("!").next().unwrap(),
+                // prefix = servername / ( nickname [ [ "!" user ] ] "@" host ] )
+            };
+            let arg = msg.params[1].split("!id ").last().unwrap();
+            vec![format!("PRIVMSG {} :{}", reciever, arg)]
+    } else {
+        vec![]
+    }
+}
+
 fn start_connection(host: &str, port: u16) -> Result<TcpStream> {
     let mut sockets = try!(lookup_host(host));
 
@@ -57,7 +72,7 @@ fn listen<S: Read + Write>(mut stream: BufStream<S>) -> Result<()> {
     println!("Starting to listen");
 
     type Subscriber = fn(&Message) -> Vec<String>;
-    let modules = vec![ping_module as Subscriber];
+    let modules = vec![ping_module as Subscriber, id_module as Subscriber];
     let mut line = String::new();
 
     loop {
