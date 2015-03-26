@@ -20,16 +20,24 @@ fn ping_module(msg: &Message) -> Vec<String> {
     }
 }
 
+fn make_reply<'a>(recv: &'a Message, reply: &'a str) -> Message<'a> {
+    let reciever = match irc_lib::is_valid_channel_name(recv.params[0]) {
+        true  => recv.params[0].clone(), //ASSUMPTION: a valid channel name is always a channel
+        false => recv.prefix.unwrap().split("!").next().unwrap().clone(),
+        // prefix = servername / ( nickname [ [ "!" user ] ] "@" host ] )
+    };
+    Message {
+        prefix: None,
+        command: recv.command.clone(),
+        params: vec![reciever, reply],
+    }
+}
+
 fn id_module(msg: &Message) -> Vec<String> {
     if msg.command == "PRIVMSG" && msg.params.len() == 2
         && msg.params[1].starts_with("!id ") {
-            let reciever = match irc_lib::is_valid_channel_name(msg.params[0]) {
-                true  => msg.params[0], //ASSUMPTION: a valid channel name is always a channel
-                false => msg.prefix.unwrap().split("!").next().unwrap(),
-                // prefix = servername / ( nickname [ [ "!" user ] ] "@" host ] )
-            };
             let arg = msg.params[1].split("!id ").last().unwrap();
-            vec![format!("PRIVMSG {} :{}", reciever, arg)]
+            vec![make_reply(msg, arg).to_string()]
     } else {
         vec![]
     }
