@@ -8,7 +8,7 @@ pub fn is_valid_channel_name(name: &str) -> bool {
         _ => false,
     }}) &&
     // forbidden characters
-    !name.contains_char(|c| { match c {
+    !name.contains(|c| { match c {
         ' ' | '\x07' | ',' => true,
         _ => false
     }})
@@ -67,6 +67,38 @@ pub struct Message<'a> {
     pub prefix: Option<&'a str>,
     pub command: &'a str,
     pub params: Vec<&'a str>,
+}
+
+impl<'a> ToString for Message<'a> {
+    fn to_string(&self) -> String {
+        let mut result = match self.prefix {
+            Some(m) => m.to_string(),
+            None => "".to_string(),
+        };
+        // seperating space
+        if self.prefix.is_some() { result.push_str(" "); }
+
+        result.push_str(self.command);
+
+        for i in (0..self.params.len()) {
+            let cur = self.params[i];
+            if cur.contains(" ") {
+                if i == self.params.len() - 1 {
+                    // trailing parameter
+                    result.push_str(" :");
+                }
+                else {
+                    panic!("Invalid message structure: non-trailing param with spaces. M.pre: {:?}, M.com: {:?}, M.par: {:?}", self.prefix, self.command, self.params);
+                }
+            }
+            else {
+                result.push_str(" ");
+            }
+            result.push_str(cur);
+        }
+
+        result
+    }
 }
 
 #[cfg(test)]
