@@ -1,6 +1,7 @@
 #![feature(unboxed_closures)]
 #![feature(tcp)]
 #![feature(convert)]
+#![feature(lookup_host)]
 
 use std::net::{lookup_host, TcpStream, SocketAddr};
 use std::io::{Result, BufStream, BufRead, Read, Write};
@@ -138,10 +139,10 @@ fn listen<S: Read + Write>(mut stream: BufStream<S>) -> Result<()> {
     println!("Starting to listen");
 
     type Subscriber = fn(&Message) -> Vec<String>;
-    let modules = vec![ping_module as Subscriber,
-                        id_module as Subscriber,
-                        random_module as Subscriber,
-                        fortune_module as Subscriber];
+    let modules:Vec<Subscriber> = vec![ping_module,// as Subscriber,
+                        id_module,// as Subscriber,
+                        random_module,// as Subscriber,
+                        fortune_module,];// as Subscriber];
     let mut line = String::new();
 
     loop {
@@ -160,6 +161,9 @@ fn listen<S: Read + Write>(mut stream: BufStream<S>) -> Result<()> {
                     let _ = try!(send_line(&mut stream, response));
                 }
             }
+            if msg.command == "376" { // End of MOTD
+                let _ = try!(send_line(&mut stream, format!("{} {}", "JOIN", "#uakroncs")));
+            }
         }
 
         line.clear();
@@ -169,16 +173,16 @@ fn listen<S: Read + Write>(mut stream: BufStream<S>) -> Result<()> {
 }
 
 fn main() {
-    let server = "irc.freenode.org";
+    let server = "concrete.slashnet.org";
     let port   = 6667;
-    let chan = "#tutbot-testing";
+    let chan = "#uakroncs";
     let nick = "Fe2O3";
 
     let mut stream = BufStream::new(start_connection(server, port).unwrap());
 
     send_line(&mut stream, format!("{} {}", "NICK", nick)).unwrap();
-    send_line(&mut stream, format!("{} {}{}","USER", nick," 0 * :tutorial bot")).unwrap();
-    send_line(&mut stream, format!("{} {}", "JOIN", chan)).unwrap();
+    send_line(&mut stream, format!("{} {}{}","USER", nick," 0 * :rust bot")).unwrap();
+    //send_line(&mut stream, format!("{} {}", "JOIN", chan)).unwrap();
 
     match listen(stream) {
         Ok(()) => (),
