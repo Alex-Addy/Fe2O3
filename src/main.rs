@@ -172,19 +172,53 @@ fn listen<S: Read + Write>(mut stream: BufStream<S>) -> Result<()> {
     Ok(())
 }
 
+fn connect_and_listen(server: &str, port: u16, nick: &str, channels: Vec<&str>) -> Result<()> {
+    let mut stream = BufStream::new(start_connection(server, port).unwrap());
+
+    try!(send_line(&mut stream, format!("NICK {}", nick)));
+    try!(send_line(&mut stream, format!("USER {}{}", nick, " 0 * :rust bot")));
+
+    let mut line = String::new();
+    loop {
+        let line_length = try!(stream.read_line(&mut line));
+        if line_length <= 2 {
+            panic!("unexpected line too short when setting up");
+        }
+        line.truncate(line_length - 2);
+        println!("< {}", line);
+
+        {
+            let wrapper = Line(line.clone());
+            let msg = wrapper.parse_msg();
+
+            let pong = ping_module(&msg);
+            for resp in pong {
+                let _ = try!(send_line(&mut stream, resp));
+            }
+
+            if msg.command == "376" { // End of MOTD
+                for chan in channels {
+                    // TODO deal with invalid channel name
+                    let _ = try!(send_line(&mut stream, format!("JOIN {}", chan)));
+                }
+                break;
+            }
+        }
+
+        line.clear();
+    }
+
+    listen(stream)
+}
+
 fn main() {
     let server = "concrete.slashnet.org";
     let port   = 6667;
     let chan = "#uakroncs";
     let nick = "Fe2O3";
 
-    let mut stream = BufStream::new(start_connection(server, port).unwrap());
 
-    send_line(&mut stream, format!("{} {}", "NICK", nick)).unwrap();
-    send_line(&mut stream, format!("{} {}{}","USER", nick," 0 * :rust bot")).unwrap();
-    //send_line(&mut stream, format!("{} {}", "JOIN", chan)).unwrap();
-
-    match listen(stream) {
+    match connect_and_listen(server, port, nick, vec![chan]) {
         Ok(()) => (),
         Err(e) => println!("{:?}", e),
     }
