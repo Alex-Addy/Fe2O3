@@ -79,6 +79,28 @@ fn random_module(msg: &Message) -> Vec<String> {
     }
 }
 
+use std::process::Command;
+fn fortune_module(msg: &Message) -> Vec<String> {
+    if msg.command == "PRIVMSG" && msg.params.len() == 2
+        && msg.params[1].starts_with("!fortune") {
+        let output = Command::new("fortune")
+            .arg("-a") // use all fortunes, including offensive ones
+            .arg("-s") // use only short fortunes
+            .output();
+        let res = match output {
+            Ok(out) => if out.status.success() {
+                String::from_utf8(out.stdout).unwrap()
+            } else {
+                format!("process exited abnormally with status {:?}", out.status.code())
+            },
+            Err(e)  => format!("Could not execute process: {:?}", e),
+        }.replace("\n", " ").replace("\t", " ");
+        vec![make_reply(msg, res.as_ref()).to_string()]
+    } else {
+        vec![]
+    }
+}
+
 fn start_connection(host: &str, port: u16) -> Result<TcpStream> {
     let mut sockets = try!(lookup_host(host));
 
@@ -118,7 +140,8 @@ fn listen<S: Read + Write>(mut stream: BufStream<S>) -> Result<()> {
     type Subscriber = fn(&Message) -> Vec<String>;
     let modules = vec![ping_module as Subscriber,
                         id_module as Subscriber,
-                        random_module as Subscriber];
+                        random_module as Subscriber,
+                        fortune_module as Subscriber];
     let mut line = String::new();
 
     loop {
