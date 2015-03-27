@@ -1,19 +1,4 @@
 
-pub fn is_valid_channel_name(name: &str) -> bool {
-    // channel name definition defined in RFC2812
-    // https://tools.ietf.org/html/rfc2812#section-1.3
-    name.len() <= 50 &&
-    name.starts_with(|c| { match c {
-        '&' | '#' | '+' | '!' => true,
-        _ => false,
-    }}) &&
-    // forbidden characters
-    !name.contains(|c| { match c {
-        ' ' | '\x07' | ',' => true,
-        _ => false
-    }})
-}
-
 pub struct Line(pub String);
 
 impl Line {
@@ -137,3 +122,4 @@ mod tests {
         assert_eq!(m.params[0], "#tutbot-testing");
     }
 }
+
