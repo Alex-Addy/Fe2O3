@@ -10,6 +10,6 @@ pub fn ping_module(msg: &Message) -> Vec<String> {
         });
         vec![res]
     } else {
-        vec![res]
+        vec![]
     }
 }

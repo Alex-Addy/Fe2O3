@@ -15,7 +15,7 @@ pub fn random_module(msg: &Message) -> Vec<String> {
             } else if args.len() == 3 { // both bounds
                 (isize::from_str(args[1]), isize::from_str(args[2]))
             } else {
-                (0, 100)
+                (Ok(0), Ok(100))
             };
 
             let num = match bounds {
