@@ -31,12 +31,18 @@ struct MarkovModel {
 //  for the construction build until the size limit is reached or
 //  there is no following word for the current value
 
-pub fn id_module(msg: &Message) -> Vec<String> {
-    if msg.command == "PRIVMSG" && msg.params.len() == 2
-        && msg.params[1].starts_with("!id ") {
-            let arg = msg.params[1].split("!id ").last().unwrap();
-            vec![make_reply(msg, arg).to_string()]
-    } else {
-        vec![]
+impl MarkovModel {
+    pub fn markov_module(&self, msg: &Message) -> Vec<String> {
+
+    }
+
+    pub fn get_chain(&self, max_len: usize, start_word: Option<String>) -> String {
+        if msg.command == "PRIVMSG" && msg.params.len() == 2
+            && msg.params[1].starts_with("!id ") {
+                let arg = msg.params[1].split("!id ").last().unwrap();
+                vec![make_reply(msg, arg).to_string()]
+            } else {
+                vec![]
+            }
     }
 }
