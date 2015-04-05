@@ -29,6 +29,6 @@ fn main() {
 
     match utils::connect_and_listen(server, port, nick, vec![chan], modules) {
         Ok(()) => (),
-        Err(e) => println!("{:?}", e),
+        Err(e) => println!("Connection ended with error: {:?}", e),
     }
 }

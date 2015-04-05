@@ -112,7 +112,12 @@ fn listen<S: Read + Write>(mut stream: BufStream<S>, modules: Vec<Subscriber>) -
     let mut line = String::new();
 
     loop {
-        let line_length = try!(stream.read_line(&mut line));
+        let result = stream.read_line(&mut line);
+        if result.is_err() {
+            continue
+        }
+
+        let line_length = result.unwrap();
         if line_length <= 2 {
             break;
         }
