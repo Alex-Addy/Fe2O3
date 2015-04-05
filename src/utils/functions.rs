@@ -127,9 +127,6 @@ fn listen<S: Read + Write>(mut stream: BufStream<S>, modules: Vec<Subscriber>) -
                     let _ = try!(send_line(&mut stream, response));
                 }
             }
-            if msg.command == "376" { // End of MOTD
-                let _ = try!(send_line(&mut stream, format!("{} {}", "JOIN", "#uakroncs")));
-            }
         }
 
         line.clear();
