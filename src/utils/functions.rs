@@ -83,7 +83,7 @@ fn start_connection(host: &str, port: u16) -> Result<TcpStream> {
     let mut sockets = try!(lookup_host(host));
 
     let intermediate: SocketAddr = sockets.find(|item| {
-        match item {
+        match *item {
             Ok(SocketAddr::V4(_)) => true,
             Ok(SocketAddr::V6(_)) => false,
             Err(_) => false,
