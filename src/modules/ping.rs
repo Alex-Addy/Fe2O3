@@ -1,5 +1,5 @@
 
-use utils::{Message, make_reply};
+use utils::Message;
 
 pub fn ping_module(msg: &Message) -> Vec<String> {
     if msg.command == "PING" {

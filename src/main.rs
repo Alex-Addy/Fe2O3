@@ -1,10 +1,11 @@
 #![feature(unboxed_closures)]
-#![feature(convert)]
 #![feature(tcp)]
 #![feature(lookup_host)]
+#![feature(buf_stream)]
+#![allow(non_snake_case)]
 
 mod utils;
-use utils::{Message, Subscriber};
+use utils::Subscriber;
 
 mod modules;
 
