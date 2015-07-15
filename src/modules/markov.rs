@@ -2,8 +2,7 @@
 use utils::{Message, make_reply};
 
 struct MarkovModel {
-    links: HashMap<String, Vec<String>>,
-    weights: HashMap<String, Vec<usize>>,
+    links: HashMap<String, HashMap<String, usize>>,
 }
 
 // fill links using input text
@@ -31,9 +30,43 @@ struct MarkovModel {
 //  for the construction build until the size limit is reached or
 //  there is no following word for the current value
 
-impl MarkovModel {
-    pub fn markov_module(&self, msg: &Message) -> Vec<String> {
+pub fn markov_module(&self, msg: &Message) -> Vec<String> {
 
+}
+
+impl MarkovModel {
+    pub fn new<R: Read>(corpus: BufReader<R>) -> MarkovModel {
+        let mut links = HashMap::new();
+
+        let peeking = corpus.lines().split(' ').peekable();
+        for word in peeking {
+            match links.get_mut(word) {
+                Some(connections) => {
+                    let next = peeking.peek();
+                    match next {
+                        Some(n) => match connections.get_mut(n) {
+                            Some(x) => *x += 1;
+                            None =>
+                        },
+                        None => (),
+                    }
+                },
+                // does not yet exist, so make it
+                None => {
+                    let mut val = HashMap::new();
+                    let next = peeking.peek();
+                    match next {
+                        Some(n) => {
+                            val.insert(n, 1);
+                            links.insert(word, val);
+                        }
+                        None => (),
+                    }
+                },
+            }
+        }
+
+        links.shrink_to_fit(); // reduce memory usage
     }
 
     pub fn get_chain(&self, max_len: usize, start_word: Option<String>) -> String {
