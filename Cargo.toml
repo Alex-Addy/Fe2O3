@@ -5,3 +5,5 @@ authors = ["Alex Addy <alex.addy@gmail.com>"]
 
 [dependencies]
 rand = "0.3.*"
+dns-lookup = "0.9.0"
+

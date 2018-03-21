@@ -65,7 +65,7 @@ impl<'a> ToString for Message<'a> {
 
         result.push_str(self.command);
 
-        for i in (0..self.params.len()) {
+        for i in 0..self.params.len() {
             let cur = self.params[i];
             if cur.contains(" ") {
                 if i == self.params.len() - 1 {

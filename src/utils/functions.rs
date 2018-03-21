@@ -1,5 +1,7 @@
-use std::net::{lookup_host, TcpStream, SocketAddr};
-use std::io::{Result, BufStream, BufRead, Read, Write};
+use std::net::TcpStream;
+use std::io::{Result, Write, BufRead, BufReader};
+
+use dns_lookup::lookup_host;
 
 use super::structs::{Message, Line};
 use super::Subscriber;
@@ -42,14 +44,15 @@ pub fn is_valid_channel_name(name: &str) -> bool {
 
 pub fn connect_and_listen(server: &str, port: u16, nick: &str, channels: Vec<&str>,
                           modules: Vec<Subscriber>) -> Result<()> {
-    let mut stream = BufStream::new(start_connection(server, port).unwrap());
+    let mut stream = try!(start_connection(server, port));
+    let mut reader = BufReader::new(try!(stream.try_clone()));
 
     try!(send_line(&mut stream, format!("NICK {}", nick)));
     try!(send_line(&mut stream, format!("USER {}{}", nick, " 0 * :rust bot")));
 
     let mut line = String::new();
     loop {
-        let line_length = try!(stream.read_line(&mut line));
+        let line_length = try!(reader.read_line(&mut line));
         if line_length <= 2 {
             panic!("unexpected line too short when setting up");
         }
@@ -76,43 +79,32 @@ pub fn connect_and_listen(server: &str, port: u16, nick: &str, channels: Vec<&st
         line.clear();
     }
 
-    listen(stream, modules)
+    listen(reader, stream, modules)
 }
 
+// start_connection will attempt to lookup host and attempt to open a socket
 fn start_connection(host: &str, port: u16) -> Result<TcpStream> {
-    let mut sockets = try!(lookup_host(host));
+    let sockets = try!(lookup_host(host));
 
-    let intermediate: SocketAddr = sockets.find(|item| {
-        match *item {
-            Ok(SocketAddr::V4(_)) => true,
-            Ok(SocketAddr::V6(_)) => false,
-            Err(_) => false,
-        }
-    }) // -> Option<Result<SocketAddr>
-        .unwrap() // -> Result<SocketAddr>
-        .unwrap(); // -> SocketAddr
+    let stream = try!(TcpStream::connect((sockets[0], port)));
 
-    let ip = match intermediate {
-        SocketAddr::V4(ipv4) => ipv4.ip().clone(),
-        SocketAddr::V6(_) => panic!("Can't handle ipv6"),
-    };
-
-    let mut stream = try!(TcpStream::connect((ip, port)));
+    // turn off Nagle so that lines sent are not buffered
     try!(stream.set_nodelay(true));
-    //try!(stream.set_keepalive(Some(30)));
 
     return Ok(stream);
 }
 
 /// Spins on stream,
 /// feeding all lines to each module and writing returned lines back to the stream
-fn listen<S: Read + Write>(mut stream: BufStream<S>, modules: Vec<Subscriber>) -> Result<()> {
+fn listen<R: BufRead, W: Write>(mut source: R, mut sink: W, modules: Vec<Subscriber>) -> Result<()> {
     println!("Starting to listen");
 
+    // string for input lines to be read into
+    // must be cleared after each line is handled
     let mut line = String::new();
 
     loop {
-        let result = stream.read_line(&mut line);
+        let result = source.read_line(&mut line);
         if result.is_err() {
             continue
         }
@@ -127,9 +119,9 @@ fn listen<S: Read + Write>(mut stream: BufStream<S>, modules: Vec<Subscriber>) -
         {
             let wrapper = Line(line.clone());
             let msg = wrapper.parse_msg();
-            for ind in (0..modules.len()) {
+            for ind in 0..modules.len() {
                 for response in modules[ind](&msg) {
-                    let _ = try!(send_line(&mut stream, response));
+                    let _ = try!(send_line(&mut sink, response));
                 }
             }
         }

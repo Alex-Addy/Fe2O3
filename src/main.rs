@@ -1,8 +1,6 @@
-#![feature(unboxed_closures)]
-#![feature(tcp)]
-#![feature(lookup_host)]
-#![feature(buf_stream)]
 #![allow(non_snake_case)]
+
+extern crate dns_lookup;
 
 mod utils;
 use utils::Subscriber;
